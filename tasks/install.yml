@@ -1,0 +1,78 @@
+---
+- include_tasks: "setup-{{ ansible_distribution|lower }}.yml"
+
+- name: Install WireGuard
+  package:
+    name: "{{ wireguard_packages }}"
+    state: present
+  tags:
+    - wg-install
+
+- name: Enable WireGuard kernel module
+  modprobe:
+    name: wireguard
+    state: present
+  register: wireguard_module_enabled
+  until:  wireguard_module_enabled is succeeded
+  retries: 10
+  delay: 10
+  failed_when: wireguard_module_enabled is failure
+  when: wireguard_module_required
+  tags:
+    - wg-install
+
+- name: Set WireGuard IP (without mask)
+  set_fact:
+    wireguard_ip: "{{ wireguard_address.split('/')[0] }}"
+
+- name: Register if config/private key already exists on target host
+  stat:
+    path: "{{ wireguard_remote_directory }}/{{ wireguard_conf_name }}.conf"
+  register: config_file_stat
+  tags:
+    - wg-generate-keys
+    - wg-config
+
+- block:
+  - name: Generate WireGuard private key
+    shell: "wg genkey"
+    register: wg_private_key_result
+    tags:
+      - wg-generate-keys
+
+  - name: Set private key fact
+    set_fact:
+      wireguard_private_key: "{{ wg_private_key_result.stdout }}"
+    tags:
+      - wg-generate-keys
+  when: not config_file_stat.stat.exists
+
+- block:
+  - name: Read WireGuard config file
+    slurp:
+      src: "{{ wireguard_remote_directory }}/{{ wireguard_conf_name }}.conf"
+    register: wg_config
+    tags:
+      - wg-config
+
+  - name: Set private key fact
+    set_fact:
+      wireguard_private_key: "{{ wg_config['content'] | b64decode | regex_findall('PrivateKey = (.*)') | first }}"
+    tags:
+      - wg-config
+  when: config_file_stat.stat.exists
+
+- name: Derive WireGuard public key
+  shell: "echo '{{ wireguard_private_key }}' | wg pubkey" # noqa 306
+  register: wg_public_key_result
+  changed_when: false
+  tags:
+    - wg-config
+
+- name: Set public key fact
+  set_fact:
+    wireguard_public_key: "{{ wg_public_key_result.stdout }}"
+  tags:
+    - wg-config
+
+

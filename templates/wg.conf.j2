@@ -33,10 +33,10 @@ SaveConfig = true
 {% endif %}
 {% for host in ansible_play_hosts %}
   {% if host != inventory_hostname %}
-  
+
     [Peer]
     # {{ host }}
-    PublicKey = {{hostvars[host].public_key}}
+    PublicKey = {{hostvars[host].wireguard_public_key}}
     {% if hostvars[host].wireguard_allowed_ips is defined %}
     AllowedIPs = {{hostvars[host].wireguard_allowed_ips}}
     {% else %}

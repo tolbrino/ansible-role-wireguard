@@ -1,0 +1,6 @@
+---
+wireguard_remote_directory: "/usr/local/etc/wireguard"
+wireguard_packages:
+  - wireguard
+  - wireguard
+wireguard_module_required: no

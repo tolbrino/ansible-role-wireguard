@@ -7,3 +7,18 @@ wireguard_port: "51820"
 
 # The default interface name that wireguard should use if not specified otherwise.
 wireguard_interface: "wg0"
+
+# The name of the configuration file excluding its file suffix. Defaults to interface name.
+wireguard_conf_name: "{{ wireguard_interface }}"
+
+# Packages which will be installed (Linux-focused)
+wireguard_packages:
+  - wireguard-dkms
+  - wireguard-tools
+
+# Must the Linux kernel module be loaded?
+wireguard_module_required: yes
+
+# This can be set to 'no' to skip the Wireguard installation on specific hosts
+# and only write the final configuration file.
+wireguard_installation_managed: yes
